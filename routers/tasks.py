@@ -1,74 +1,101 @@
 from fastapi import APIRouter, HTTPException
 from schemas.task import TaskCreate, TaskReplace, TaskResponse, TaskUpdate
+from database import SessionLocal
+from models import Task
 
 router = APIRouter()
 
-tasks = [
-    {"id": 1, "title": "Learn FastAPI", "completed": False},
-    {"id": 2, "title": "Build first endpoint", "completed": True},
-    {"id": 3, "title": "Practice query params", "completed": False}
-]
+@router.get("/", response_model=list[TaskResponse])
+def get_all_tasks():
+    db = SessionLocal()
+    all_tasks = db.query(Task).all()
+    return all_tasks
 
-@router.get("/search")
+@router.get("/search", response_model=list[TaskResponse])
 def search(completed: bool | None = None, title: str | None = None):
-    results = []
+    db = SessionLocal()
 
-    for task in tasks:
-        if completed is not None and task["completed"] != completed:
-            continue
+    query = db.query(Task)
 
-        if title is not None and title.lower() not in task["title"].lower():
-            continue
+    if completed is not None:
+        query = query.filter(Task.completed == completed)
 
-        results.append(task)
+    if title is not None:
+        query = query.filter(Task.title.contains(title))
+
+    results = query.all()
 
     return results
 
 @router.get("/{task_id}", response_model = TaskResponse)
 def get_task(task_id: int):
-    for task in tasks:
-        if task["id"] == task_id:
-            return task
+    db = SessionLocal()
+    
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if task is not  None:
+        return task
     raise HTTPException(status_code = 404, detail = "Item not Found")
 
 @router.post("/", response_model = TaskResponse, status_code = 201)
 def create_task(task: TaskCreate):
-    largest_id = -1
-    if tasks == []:
-        largest_id = 0
-    else:
-        for single_task in tasks:
-            if single_task["id"] > largest_id:
-                largest_id = single_task["id"]
-    tasks.append({"id": largest_id + 1, "title": task.title, "completed": False})
-    return {"id": largest_id + 1, "title": task.title, "completed": False}
+    db = SessionLocal()
+
+    new_task = Task(
+        title=task.title,
+        completed=False
+    )
+
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
+
+    return new_task
 
 @router.delete("/{task_id}", status_code = 204)
 def delete_task(task_id: int):
-    index = 0
-    for task in tasks:
-        if task["id"] == task_id:
-            del tasks[index]
-            return
-        index += 1
-    raise HTTPException(status_code = 404, detail = "Item not Found")
+    db = SessionLocal()
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if task is None:
+        raise HTTPException(status_code = 404, detail = "Item not Found")
+    
+    db.delete(task)
+    db.commit()
+    
 
 @router.patch("/{task_id}", response_model = TaskResponse)
 def update_task(task_id: int, update: TaskUpdate):
-    for task in tasks:
-        if task["id"] == task_id:
-            if update.title is not None:
-                task["title"] = update.title
-            if update.completed is not None:
-                task["completed"] = update.completed
-            return task
-    raise HTTPException(status_code=404, detail="Item not Found")
+    db = SessionLocal()
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    
+    if task is None:
+        raise HTTPException(status_code=404, detail="Item not Found")
+    
+    if update.title is not None:
+        task.title = update.title
+
+    if update.completed is not None:
+        task.completed = update.completed
+    
+    db.commit()
+    db.refresh(task)
+    
+    return task
 
 @router.put("/{task_id}", response_model = TaskResponse)
 def replace_task(task_id: int, update: TaskReplace):
-    for task in tasks:
-        if task["id"] == task_id:
-            task["title"] = update.title
-            task["completed"] = update.completed
-            return task
-    raise HTTPException(status_code=404, detail="Item not Found")
+    db = SessionLocal()
+
+    task = db.query(Task).filter(Task.id == task_id).first()
+    
+    if task is None:
+        raise HTTPException(status_code=404, detail="Item not Found")
+    
+    task.title = update.title
+    task.completed = update.completed
+
+    db.commit()
+    db.refresh(task)
+
+    return task

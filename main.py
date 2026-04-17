@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from routers import tasks
+import models
 
 app = FastAPI()
 

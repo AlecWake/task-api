@@ -1,35 +1,48 @@
 # Task API
 
-A FastAPI-based task management API that supports full CRUD operations using an in-memory data store.
+A FastAPI-based task management API that supports full CRUD operations using PostgreSQL and SQLAlchemy for persistent data storage.
 
 ## Features
 - Create tasks
+- Retrieve all tasks
 - Retrieve a single task by ID
-- Search tasks with query parameters (title, completed)
-- Update tasks partially (PATCH)
-- Replace tasks بالكامل (PUT)
+- Search tasks with query parameters (`title`, `completed`)
+- Update tasks partially with PATCH
+- Replace tasks fully with PUT
 - Delete tasks
 
 ## Tech Stack
 - Python
 - FastAPI
+- PostgreSQL
+- SQLAlchemy
 - Pydantic
+- Uvicorn
 
 ## Project Structure
 project/
 │── main.py
+│── database.py
+│── models.py
+│── requirements.txt
+│── README.md
 │── routers/
-│ └── tasks.py
+│   └── tasks.py
 │── schemas/
-│ └── task.py
+│   └── task.py
 
 ## Key Concepts Implemented
+- FastAPI routing for clean endpoint organization
 - Pydantic schemas for request and response validation
-- Separation of concerns using routers
-- Clean API structure and endpoint organization
+- SQLAlchemy ORM for database interaction
+- PostgreSQL integration for persistent storage
+- CRUD operations using real database data
+- Query filtering with optional search parameters
 - Proper HTTP status codes and error handling
 
-## Example Endpoints
+## API Endpoints
+- `GET /`
+- `GET /tasks`
 - `GET /tasks/search`
 - `GET /tasks/{task_id}`
 - `POST /tasks`
@@ -37,5 +50,9 @@ project/
 - `PUT /tasks/{task_id}`
 - `DELETE /tasks/{task_id}`
 
-## Notes
-This project uses an in-memory list for storage and is intended for learning backend fundamentals and API design.
+## Example Request Body
+### Create Task
+```json
+{
+  "title": "Finish backend roadmap work"
+}
